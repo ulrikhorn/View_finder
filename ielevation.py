@@ -7,8 +7,8 @@ from circular_locations import straightlines
 import time
 
 
-def retreive_html_elevation(lat, lon):
-    response = urllib3.request("GET", "https://api.opentopodata.org/v1/eudem25m?locations=" + lat + "," + lon)
+def retreive_html_elevation(lat):
+    response = urllib3.request("GET", "https://api.opentopodata.org/v1/eudem25m?locations=" + lat)
     response = response.data
     response = response.decode()
     results = re.findall("      \"elevation\": (\d+)\.\d+,", response)
@@ -16,7 +16,7 @@ def retreive_html_elevation(lat, lon):
 
     return results
 
-
+# These are the only arguments to parse
 df = straightlines(start_lat = 61.0349, start_lon=7.8862, r_value=0.01)
 
 
@@ -29,14 +29,30 @@ def round_up(n, decimals=0):
 
 
 lat_string = ""
-lon_string = ""
 for i in np.arange(start = 0, stop = round_up(len(df.index)/100), step = 1):
      temp_df = df.iloc[int(i)*100:(int(i)+1)*100]
-     #print(temp_df)
      for j in range(len(temp_df)):
         lat_string += str(temp_df.iloc[j][0])
         lat_string += ","
         lat_string += str(temp_df.iloc[j][1])
-        if j < len(temp_df):
+        if j < len(temp_df)-1:
             lat_string += "|"
-        print(lat_string)
+        if j == len(temp_df)-1:
+            lat_string += "split"
+        
+split_lat_string = lat_string.split("split")
+
+# This is where the actual elevation data is retreived
+coord_elevation_df = pd.DataFrame({'latlon':[], 'elevation':[]})
+for i in split_lat_string[1:3]:
+    latlon_list = i.split("|")  
+    elevation_list = retreive_html_elevation(i)
+    test_df = pd.DataFrame({'latlon':latlon_list, 'elevation':elevation_list})
+    coord_elevation_df = pd.concat([coord_elevation_df, test_df])
+
+
+# Spliting the lonlat column into two columns
+coord_elevation_df[["lat", "lon"]] = coord_elevation_df["latlon"].str.split(",", expand = True)
+
+coord_elevation_df.to_csv("coord_elevation_df.csv", index = False)
+print(coord_elevation_df)
