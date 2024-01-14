@@ -19,9 +19,7 @@ def retreive_html_elevation(lat):
 # These are the only arguments to parse
 df = straightlines(start_lat = 61.0349, start_lon=7.8862, r_value=0.01)
 
-
 ## Need to split the dataframe into parts of length 100 or less
-
 
 def round_up(n, decimals=0):
     multiplier = 10**decimals
@@ -41,18 +39,21 @@ for i in np.arange(start = 0, stop = round_up(len(df.index)/100), step = 1):
             lat_string += "split"
         
 split_lat_string = lat_string.split("split")
+del split_lat_string[len(split_lat_string)-1]
 
 # This is where the actual elevation data is retreived
 coord_elevation_df = pd.DataFrame({'latlon':[], 'elevation':[]})
-for i in split_lat_string[1:3]:
-    latlon_list = i.split("|")  
+for i in split_lat_string:
+    latlon_list = i.split("|")
+    #print(len(latlon_list))
     elevation_list = retreive_html_elevation(i)
+
     test_df = pd.DataFrame({'latlon':latlon_list, 'elevation':elevation_list})
     coord_elevation_df = pd.concat([coord_elevation_df, test_df])
 
 
 # Spliting the lonlat column into two columns
 coord_elevation_df[["lat", "lon"]] = coord_elevation_df["latlon"].str.split(",", expand = True)
-
-coord_elevation_df.to_csv("coord_elevation_df.csv", index = False)
+coord_elevation_df = coord_elevation_df.drop(columns= ["latlon"])
+coord_elevation_df.to_csv("coord_elevation_df2.csv")
 print(coord_elevation_df)
