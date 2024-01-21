@@ -5,7 +5,7 @@
 
 # check if coordinate df already exsists
 # if not run:
-mkdir results_folder 
+mkdir results_fold
 
 python ielevation.py -args
 

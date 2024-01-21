@@ -5,7 +5,10 @@ import math
 import numpy as np
 from circular_locations import straightlines
 import time
+import sys
 
+#start_lat = sys.argv[1]
+#start_long = sys.argv[2]
 
 def retreive_html_elevation(lat):
     response = urllib3.request("GET", "https://api.opentopodata.org/v1/eudem25m?locations=" + lat)
