@@ -20,7 +20,8 @@ def retreive_html_elevation(lat):
     return results
 
 # These are the only arguments to parse
-df = straightlines(start_lat = 61.0349, start_lon=7.8862, r_value=0.01)
+df = straightlines(start_lat = 60.3268384, start_lon=	
+9.4876382, r_value=0.005)
 
 ## Need to split the dataframe into parts of length 100 or less
 

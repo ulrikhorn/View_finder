@@ -16,7 +16,7 @@ angles = list(np.arange(0,36,1))*int(len(df)/36)
 itterations = np.array([np.arange(0, len(df)/36)])
 itterations = np.repeat(itterations, 36)
 
-df = df.assign(angle = angles)
+df = df.assign(angle_nr = angles)
 df = df.assign(itteration = itterations)
 
 initial_elevation = int(df.iloc[0][1])
@@ -27,7 +27,7 @@ initial_elevation = int(df.iloc[0][1])
 
 # Mutating columns conditionally (Mutate ifelse in R)
 df = df.assign(lower = ['true' if i < initial_elevation else 'false' for i in df['elevation']])
-
+df.loc[:35, 'lower'] = 'start'
 
 # Getting the distance to start for geometry calcs
 dist_list = []
@@ -62,23 +62,75 @@ for i in range(len(df)):
 
 df = df.assign(hyp = hypotenuse)
 
-df = df.assign(angle_degrees= np.arcsin(elev_diff/hyp))
-df = df.assign(angle_degrees= [np.arcsin(elev_diff/hyp) if i > 0 else 0 for i in df['elev_diff']])
+df['angle'] = np.arcsin(df['elev_diff']/df['hyp'])
+#df = df.assign(angle=lambda x: np.arcsin(x.elev_diff/x.hyp))
+#df['angle'] = df.apply(lambda row: np.arcsin(row.elev_diff/row.hyp, axis=1))
+
+#df = df.assign(angle= [(elev_diff/hyp) if i > 0 else 0 for i in df['elev_diff']])
+#df.columns.values[0] = ['index']
+#print(df)
+#print(df.iloc[df.groupby('angle_nr',)['elevation'].idxmax()])
+
+#print(df)
+
+## Function to find height given angle and length
+def height_at(dist_to_start, angle_at_query):
+    c = (dist_to_start/math.cos(angle_at_query))
+    height = math.sqrt((c**2)-(dist_to_start**2))
+    return height
+
+
+df = df.rename(columns={'Unnamed: 0' : 'nr'})
+
+df['highest_seen'] = 'FALSE'
+df['seen'] = 'FALSE'
+
+for i in np.unique(df['angle_nr']):
+    highest_seen = df.query(f'angle_nr == {i} & lower == "false"') # this should be the first row where lower = false
+    for j in np.unique(df['itteration']):
+        if int(j) < 39: # this needs to be spesific for number of itterations
+            query_itt = df.query(f'angle_nr == {i} & itteration == {j}')
+            if int(query_itt['itteration']) == 0:
+                    df['seen'][int(query_itt['nr'])] = "true"
+                    continue
+            else:
+                if query_itt['lower'].to_string(index=False) == 'false': # and this is the first lower == false
+                    highest_seen = query_itt
+                else:
+                    if query_itt['lower'].to_string(index=False) == 'false':
+                        if int(query_itt['elevation']) > int(highest_seen['elevation']):
+                            #print(height_at(float(highest_seen['distance_to_start']), float(query_itt['angle'])))
+                            if height_at(float(highest_seen['distance_to_start']), float(query_itt['angle'])) < int(query_itt['elev_diff']):
+                                print("test3")
+                                highest_seen = query_itt
+
+            df['highest_seen'][int(highest_seen['nr'])] = "true"
+            print("done")
+        else:
+            
+
+            else:
+                
+                            
+                            #print(query_itt['nr'])
+
+                
+
+#if j == max(np.unique(df['itteration'])):
+# test = df.query('angle_nr == 1 & itteration == 1')
+# df['highest_seen'][int(test['nr'])] = "true"
+#print(df)
 
 print(df)
+# latlon= [float(df.query('highest_seen == "true"')['lat']), float(df.query('highest_seen == "true"')['lon'])]
+# print(latlon)
+df.to_csv("df.csv")
 
 
 
 
 
 
-
-
-
-
-
-
-map = folium.Map(location = [61.0349, 7.8862], zoom_start = 10)
 
 
 # folium.CircleMarker(location=[df.lat, df.lon],
@@ -88,15 +140,17 @@ map = folium.Map(location = [61.0349, 7.8862], zoom_start = 10)
 
 latlon = []
 for i in range(len(df)):
-    latlon.append([df.loc[i]['lat'], df.loc[i]['lon']])
+    if df.loc[i]['highest_seen'] == 'true' or df.loc[i]['itteration'] == 0 or df.loc[i]['seen'] == 'true':
+        latlon.append([df.loc[i]['lat'], df.loc[i]['lon']])
 
-mapit = folium.Map( location=[61.0349, 7.8862], zoom_start=6 )
+
+mapit = folium.Map( location=[60.3268384, 9.4876382], zoom_start=12 )
 for coord in latlon:
     folium.Marker( location=[ coord[0], coord[1] ], fill_color='#43d9de', radius=8 ).add_to( mapit )
 
-mapit.save( 'map.html')
+mapit.save( 'map2.html')
 
-output_file = "map.html"
+output_file = "map2.html"
 mapit.save(output_file)
 
 
